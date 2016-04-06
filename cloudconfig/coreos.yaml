@@ -1,0 +1,31 @@
+#cloud-config
+
+coreos:
+  units:
+    - name: journald2graylog.service
+      command: start
+      content: |
+        [Unit]
+        Description=forwarding journald's logs to a Graylog server
+        Requires=journald2graylog_install.service
+        [Service]
+        Environment="J2G_HOSTNAME=graylog.example.com"
+        Environment="J2G_PORT=12001"
+        Environment="J2G_PACKET_SIZE=1420"
+        ExecStart=/bin/sh -c 'journalctl -o json -f | /opt/bin/journald2graylog'
+        Restart=always
+        RestartSec=10
+    - name: journald2graylog_install.service
+      command: start
+      content: |
+        [Unit]
+        Description=downloading and installing journald2graylog in /opt/bin.
+        [Service]
+        ExecStartPre=/usr/bin/curl -L -o /opt/bin/journald2graylog.zip -z /opt/bin/journald2graylog.zip https://github.com/cdemers/journald2graylog/releases/download/v0.1.0/journald2graylog.linux_amd64.zip
+        ExecStartPre=/bin/unzip /opt/bin/journald2graylog.zip -d /opt/bin
+        ExecStartPre=/usr/bin/rm /opt/bin/journald2graylog.zip
+        ExecStart=/usr/bin/chmod +x /opt/bin/journald2graylog
+        RemainAfterExit=yes
+        Type=oneshot
+
+

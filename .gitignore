@@ -22,3 +22,6 @@ _testmain.go
 *.exe
 *.test
 *.prof
+
+journald2graylog
+testset

@@ -24,4 +24,5 @@ _testmain.go
 *.prof
 
 journald2graylog
-testset
+test_set
+private_tools

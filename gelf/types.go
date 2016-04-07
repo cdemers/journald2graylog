@@ -29,6 +29,8 @@ type GELFLogEntry struct {
 
 	Transport string `json:"_LogTransport"`
 
+	Function string `json:"_function"`
+
 	// Metadata
 	RawLogLine string `json:"_RawLogLine"`
 }

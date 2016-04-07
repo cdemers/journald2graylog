@@ -172,6 +172,8 @@ func main() {
 			gelfLogEntry.Line = &lineNumber
 			// GELF: File
 			gelfLogEntry.File = logEntry.CodeFile
+			// GELF: Function
+			gelfLogEntry.Function = logEntry.CodeFunction
 		}
 
 		// GELF: Transport

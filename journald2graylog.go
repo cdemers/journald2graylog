@@ -22,7 +22,7 @@ func parseGraylogConfig() (hostname string, port int, packetSize int, err error)
 	packetSizeStr := os.Getenv("J2G_PACKET_SIZE")
 
 	if hostname == "" {
-		err = fmt.Errorf("The Graylog server hostname is required but was not specified.")
+		err = fmt.Errorf("The Graylog server hostname is required but was not specified. The server hostname is expected to be specified via the J2G_HOSTNAME environment variable.")
 		return "", 0, 0, err
 	}
 
@@ -49,14 +49,15 @@ func parseGraylogConfig() (hostname string, port int, packetSize int, err error)
 	return hostname, port, packetSize, nil
 }
 
-func parseCommandLineFlags() (verboseFlag *bool) {
+func parseCommandLineFlags() (verboseFlag *bool, disableRawLogLine *bool) {
 	verboseFlag = flag.Bool("verbose", false, "Wether journald2graylog will be verbose or not.")
+	disableRawLogLine = flag.Bool("disable-rawlogline", false, "Wether journald2graylog will send the raw log line or not.")
 	flag.Parse()
-	return verboseFlag
+	return verboseFlag, disableRawLogLine
 }
 
 func main() {
-	verbose := *parseCommandLineFlags()
+	verbose, disableRawLogLine := parseCommandLineFlags()
 
 	graylogHostname, graylogPort, graylogPacketSize, err := parseGraylogConfig()
 	if err != nil {
@@ -82,7 +83,7 @@ func main() {
 		MaxChunkSizeLan: graylogPacketSize,
 	})
 
-	if verbose {
+	if *verbose {
 		log.Printf("Graylog host:\"%s\" port:\"%d\" packet size:\"%d\".",
 			graylogHostname, graylogPort, graylogPacketSize)
 	}
@@ -104,7 +105,7 @@ func main() {
 			panic(err)
 		}
 		if overflow {
-			log.Println("Got a log line that was bigger than our buffer, it will be skiped.")
+			log.Println("Got a log line that was bigger than the allocated buffer, it will be skiped.")
 			continue
 		}
 
@@ -116,7 +117,9 @@ func main() {
 
 		// Populating the new GELF structure with all the data we received from
 		// the journald's JSON formatted data from stdin.
-		gelfLogEntry.RawLogLine = string(line)
+		if ! *disableRawLogLine {
+			gelfLogEntry.RawLogLine = string(line)			
+		}
 
 		// GELF: Version, mendatory.
 		gelfLogEntry.Version = "1.1"
@@ -139,10 +142,18 @@ func main() {
 
 		// GELF: Timestamp
 		var jts = logEntry.RealtimeTimestamp
-		gelfLogEntry.Timestamp, err = strconv.Atoi(fmt.Sprintf("%s", jts[:10]))
+		gelfLogEntry.Timestamp, err = strconv.ParseFloat(fmt.Sprintf("%s.%s", jts[:10], jts[10:]), 64)
 
 		// GELF: Facility
-		gelfLogEntry.Facility = fmt.Sprintf("%s (%s)", logEntry.SyslogFacility, logEntry.SyslogIdentifier)
+		if (logEntry.SyslogFacility != "") && (logEntry.SyslogIdentifier != "") {
+			gelfLogEntry.Facility = fmt.Sprintf("%s (%s)", logEntry.SyslogFacility, logEntry.SyslogIdentifier)
+		} else if logEntry.SyslogFacility != "" {
+			gelfLogEntry.Facility = logEntry.SyslogFacility
+		} else if logEntry.SyslogIdentifier != "" {
+			gelfLogEntry.Facility = logEntry.SyslogIdentifier
+		} else {
+			gelfLogEntry.Facility = "Undefined"
+		}
 
 		// GELF: BootId
 		gelfLogEntry.BootID = logEntry.BootID
@@ -187,7 +198,7 @@ func main() {
 
 		gelfPayload := string(gelfPayloadBytes)
 
-		if verbose {
+		if *verbose {
 			log.Println(gelfPayload)
 		}
 

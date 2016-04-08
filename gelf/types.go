@@ -6,15 +6,15 @@ import "fmt"
 // sent to the Graylog server.
 type GELFLogEntry struct {
 	// Standard GELF Fields
-	Version      string `json:"version"`
-	Host         string `json:"host"`
-	ShortMessage string `json:"short_message"`
-	FullMessage  string `json:"full_message"`
-	Timestamp    int    `json:"timestamp"`
-	Level        int    `json:"level"`
-	Facility     string `json:"facility"`
-	Line         *int   `json:"line"`
-	File         string `json:"file"`
+	Version      string  `json:"version"`
+	Host         string  `json:"host"`
+	ShortMessage string  `json:"short_message"`
+	FullMessage  string  `json:"full_message"`
+	Timestamp    float64 `json:"timestamp"`
+	Level        int     `json:"level"`
+	Facility     string  `json:"facility"`
+	Line         *int    `json:"line"`
+	File         string  `json:"file"`
 
 	// Systemd Extended Fields
 	BootID    string `json:"_BootID"`

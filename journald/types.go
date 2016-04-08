@@ -7,13 +7,13 @@ type JournaldJSONLogEntry struct {
 	Message          string `json:"MESSAGE"`
 	MessageID        string `json:"MESSAGE_ID"`
 	Priority         string `json:"PRIORITY"`
-	CodeFile         string `json:"CODE_FILE"`
-	CodeLine         string `json:"CODE_LINE"`
-	CodeFunction     string `json:"CODE_FUNCTION"`
+	CodeFile         string `json:"CODE_FILE,omitempty"`
+	CodeLine         string `json:"CODE_LINE,omitempty"`
+	CodeFunction     string `json:"CODE_FUNCTION,omitempty"`
 	Errno            string `json:"ERRNO"`
-	SyslogFacility   string `json:"SYSLOG_FACILITY"`
-	SyslogIdentifier string `json:"SYSLOG_IDENTIFIER"`
-	SyslogPid        string `json:"SYSLOG_PID"`
+	SyslogFacility   string `json:"SYSLOG_FACILITY,omitempty"`
+	SyslogIdentifier string `json:"SYSLOG_IDENTIFIER,omitempty"`
+	SyslogPID        string `json:"SYSLOG_PID,omitempty"`
 
 	// Trusted Journal Fields (from freedesktop docs)
 	PID string `json:"_PID"`

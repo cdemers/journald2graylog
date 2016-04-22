@@ -1,0 +1,13 @@
+language: go
+
+sudo: required
+
+go:
+  - tip
+
+install:
+  - go get -u github.com/alecthomas/gometalinter
+  - gometalinter --install --update
+
+script:
+  - gometalinter

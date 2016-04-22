@@ -1,4 +1,7 @@
 # journald2graylog
+
+[![Build Status](https://travis-ci.org/cdemers/journald2graylog.svg?branch=master)](https://travis-ci.org/cdemers/journald2graylog)
+
 Command line tool to help forward _systemd's_ _journald's_ logs to a [_Graylog_](https://www.graylog.org/) server taking advantage of the descriptive _GELF_ format.
 
 The _journald2graylog_ command expects it's paramters to be provided as the environment variables, making it well suited for [_Docker_](https://www.docker.com/) or _systemd_ driven environments, and _PaaS_ platforms like [_Heroku_](https://www.heroku.com/) and the [_Twelve-Factor App_](http://12factor.net/config) approach.

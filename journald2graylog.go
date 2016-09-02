@@ -49,6 +49,8 @@ func parseGraylogConfig() (hostname string, port int, packetSize int, err error)
 	return hostname, port, packetSize, nil
 }
 
+const version = "0.1.1"
+
 func parseCommandLineFlags() (verboseFlag *bool, disableRawLogLine *bool) {
 	verboseFlag = flag.Bool("verbose", false, "Wether journald2graylog will be verbose or not.")
 	disableRawLogLine = flag.Bool("disable-rawlogline", false, "Wether journald2graylog will send the raw log line or not.")
@@ -58,6 +60,10 @@ func parseCommandLineFlags() (verboseFlag *bool, disableRawLogLine *bool) {
 
 func main() {
 	verbose, disableRawLogLine := parseCommandLineFlags()
+
+	if *verbose {
+		log.Printf("journald2graylog version %s\n", version)
+	}
 
 	graylogHostname, graylogPort, graylogPacketSize, err := parseGraylogConfig()
 	if err != nil {
@@ -117,8 +123,8 @@ func main() {
 
 		// Populating the new GELF structure with all the data we received from
 		// the journald's JSON formatted data from stdin.
-		if ! *disableRawLogLine {
-			gelfLogEntry.RawLogLine = string(line)			
+		if !*disableRawLogLine {
+			gelfLogEntry.RawLogLine = string(line)
 		}
 
 		// GELF: Version, mendatory.
@@ -172,6 +178,17 @@ func main() {
 		gelfLogEntry.Executable = logEntry.Executable
 		// GELF: Command Line
 		gelfLogEntry.CommandLine = logEntry.CommandLine
+
+		// GELF: Systemd Unit Name.
+		// Tries to select one unit name by fallback between different keys used
+		// to specify the unit name.
+		if logEntry.Unit != "" {
+			gelfLogEntry.Unit = logEntry.Unit
+		} else if logEntry.SystemdUnit != "" {
+			gelfLogEntry.Unit = logEntry.SystemdUnit
+		} else if logEntry.SystemdUserUnit != "" {
+			gelfLogEntry.Unit = logEntry.SystemdUserUnit
+		}
 
 		var lineNumber int
 		if logEntry.CodeLine != "" {

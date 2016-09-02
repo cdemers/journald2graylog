@@ -27,12 +27,13 @@ type JournaldJSONLogEntry struct {
 	AuditSession  string `json:"_AUDIT_SESSION"`
 	AuditLoginUID string `json:"_AUDIT_LOGINUID"`
 
-	SystemdCGroup   string `json:"_SYSTEMD_CGROUP"`
-	SystemdSession  string `json:"_SYSTEMD_SESSION"`
+	Unit            string `json:"UNIT"`
 	SystemdUnit     string `json:"_SYSTEMD_UNIT"`
 	SystemdUserUnit string `json:"_SYSTEMD_USER_UNIT"`
 	SystemdOwnerUID string `json:"_SYSTEMD_OWNER_UID"`
 	SystemdSlice    string `json:"_SYSTEMD_SLICE"`
+	SystemdCGroup   string `json:"_SYSTEMD_CGROUP"`
+	SystemdSession  string `json:"_SYSTEMD_SESSION"`
 
 	EffectiveCapabilities   string `json:"_CAP_EFFECTIVE"`
 	SELinuxContext          string `json:"_SELINUX_CONTEXT"`

@@ -51,15 +51,16 @@ func parseGraylogConfig() (hostname string, port int, packetSize int, err error)
 
 const version = "0.1.1"
 
-func parseCommandLineFlags() (verboseFlag *bool, disableRawLogLine *bool) {
-	verboseFlag = flag.Bool("verbose", false, "Wether journald2graylog will be verbose or not.")
+func parseCommandLineFlags() (verboseFlag *bool, disableRawLogLine *bool, debugFlag *bool) {
+	verboseFlag = flag.Bool("verbose", false, "Enable verbose mode.")
+	debugFlag = flag.Bool("debug", false, "Enable debug mode. Warning! Do not use when journald2graylog is run as a service, it will trigger an infinite log feedback loop.")
 	disableRawLogLine = flag.Bool("disable-rawlogline", false, "Wether journald2graylog will send the raw log line or not.")
 	flag.Parse()
-	return verboseFlag, disableRawLogLine
+	return verboseFlag, disableRawLogLine, debugFlag
 }
 
 func main() {
-	verbose, disableRawLogLine := parseCommandLineFlags()
+	verbose, disableRawLogLine, debug := parseCommandLineFlags()
 
 	if *verbose {
 		log.Printf("journald2graylog version %s\n", version)
@@ -117,7 +118,7 @@ func main() {
 
 		err = json.Unmarshal(line, &logEntry)
 		if err != nil {
-			log.Printf("The following log line was not a correctly JSON encoded, it will be skiped: \"%s\"\n", line)
+			log.Printf("The following log line was not a correctly JSON encoded, it will be skiped: \"%s\"\n", string(line))
 			continue
 		}
 
@@ -215,7 +216,7 @@ func main() {
 
 		gelfPayload := string(gelfPayloadBytes)
 
-		if *verbose {
+		if *debug {
 			log.Println(gelfPayload)
 		}
 

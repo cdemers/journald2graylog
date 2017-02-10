@@ -1,0 +1,64 @@
+{
+    "kind":"DaemonSet",
+    "apiVersion":"extensions/v1beta1",
+    "metadata":{
+        "name":"journald2graylog",
+        "namespace": "admin",
+        "labels":{
+            "app":"journald2graylog",
+            "ds-version": "1.0.0",
+            "tier":"admin"
+        }
+    },
+    "spec":{
+        "template":{
+            "metadata":{
+                "labels":{
+                    "app":"journald2graylog",
+                    "tier":"admin"
+                }
+            },
+            "spec":{
+                "volumes": [
+                    {
+                        "name": "journalctl-logs",
+                        "hostPath": {
+                            "path": "/var/log/journal"
+                        }
+                    }
+                ],
+                "containers":[
+                    {
+                        "name":"journald2graylog",
+                        "imagePullPolicy": "Always",
+                        "env": [
+                            {
+                                "name": "J2G_HOSTNAME",
+                                "value": "graylog.example.com"
+                            },
+                            {
+                                "name": "J2G_PORT",
+                                "value": "12201"
+                            },
+                            {
+                                "name": "J2G_PACKET_SIZE",
+                                "value": "1420"
+                            },
+                            {
+                                "name": "J2G_BLACKLIST",
+                                "value": "reconciler\\.go:299;kubelet_getters\\.go:249"
+                            }
+                        ],
+                        "volumeMounts": [
+                            {
+                                "name": "journalctl-logs",
+                                "readOnly": true,
+                                "mountPath": "/var/log/journal"
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+    }
+}

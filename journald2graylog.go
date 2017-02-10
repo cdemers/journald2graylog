@@ -10,9 +10,14 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/cdemers/journald2graylog/blacklist"
 	"github.com/cdemers/journald2graylog/gelf"
 	"github.com/cdemers/journald2graylog/journald"
 	rkgelf "github.com/robertkowalski/graylog-golang"
+)
+
+var (
+	blacklistFlag = flag.String("J2G_BLACKLIST", os.Getenv("J2G_BLACKLIST"), "Blacklist Regex with ; separator ( e.g. : \"foo.*;bar.*\" )")
 )
 
 func parseGraylogConfig() (hostname string, port int, packetSize int, err error) {
@@ -83,20 +88,18 @@ func main() {
 		MaxChunkSizeLan: graylogPacketSize,
 	})
 
+	b := blacklist.PrepareBlacklist(blacklistFlag)
+
 	if *verbose {
-		log.Printf("Graylog host:\"%s\" port:\"%d\" packet size:\"%d\".",
-			graylogHostname, graylogPort, graylogPacketSize)
+		log.Printf("Graylog host:\"%s\" port:\"%d\" packet size:\"%d\" blacklist:\"%v\"",
+			graylogHostname, graylogPort, graylogPacketSize, b)
 	}
 
-	// Build the go reader of stdin from where the log stream will be comming
-	// from.
+	// Build the go reader of stdin from where the log stream will be comming from.
 	reader := bufio.NewReader(os.Stdin)
 
 	// Loop and process entries from stdin until EOF.
 	for {
-		var logEntry journald.JournaldJSONLogEntry
-		var gelfLogEntry gelf.GELFLogEntry
-
 		line, overflow, err := reader.ReadLine()
 		if err == io.EOF {
 			os.Exit(0)
@@ -108,95 +111,14 @@ func main() {
 			log.Println("Got a log line that was bigger than the allocated buffer, it will be skiped.")
 			continue
 		}
-
-		err = json.Unmarshal(line, &logEntry)
-		if err != nil {
-			log.Printf("The following log line was not a correctly JSON encoded, it will be skiped: \"%s\"\n", line)
+		if b.IsBlacklisted(line) {
 			continue
 		}
 
-		// Populating the new GELF structure with all the data we received from
-		// the journald's JSON formatted data from stdin.
-		if ! *disableRawLogLine {
-			gelfLogEntry.RawLogLine = string(line)			
+		gelfPayload := prepareGelfPayload(disableRawLogLine, line, defaultHostname)
+		if gelfPayload == "" {
+			continue
 		}
-
-		// GELF: Version, mendatory.
-		gelfLogEntry.Version = "1.1"
-
-		// GELF: Hostname
-		if logEntry.Hostname == "" || logEntry.Hostname == "localhost" {
-			gelfLogEntry.Host = defaultHostname
-		} else {
-			gelfLogEntry.Host = logEntry.Hostname
-		}
-
-		// GELF: Log Priority/Level
-		gelfLogEntry.Level, err = strconv.Atoi(logEntry.Priority)
-		if err != nil {
-			panic(err)
-		}
-
-		// GELF: Message (ShortMessage)
-		gelfLogEntry.ShortMessage = logEntry.Message
-
-		// GELF: Timestamp
-		var jts = logEntry.RealtimeTimestamp
-		gelfLogEntry.Timestamp, err = strconv.ParseFloat(fmt.Sprintf("%s.%s", jts[:10], jts[10:]), 64)
-
-		// GELF: Facility
-		if (logEntry.SyslogFacility != "") && (logEntry.SyslogIdentifier != "") {
-			gelfLogEntry.Facility = fmt.Sprintf("%s (%s)", logEntry.SyslogFacility, logEntry.SyslogIdentifier)
-		} else if logEntry.SyslogFacility != "" {
-			gelfLogEntry.Facility = logEntry.SyslogFacility
-		} else if logEntry.SyslogIdentifier != "" {
-			gelfLogEntry.Facility = logEntry.SyslogIdentifier
-		} else {
-			gelfLogEntry.Facility = "Undefined"
-		}
-
-		// GELF: BootId
-		gelfLogEntry.BootID = logEntry.BootID
-
-		// GELF: MachineId
-		gelfLogEntry.MachineID = logEntry.MachineID
-
-		// GELF: PID
-		gelfLogEntry.PID = logEntry.PID
-		// GELF: UID
-		gelfLogEntry.UID = logEntry.UID
-		// GELF: GID
-		gelfLogEntry.GID = logEntry.GID
-
-		// GELF: Executable
-		gelfLogEntry.Executable = logEntry.Executable
-		// GELF: Command Line
-		gelfLogEntry.CommandLine = logEntry.CommandLine
-
-		var lineNumber int
-		if logEntry.CodeLine != "" {
-			lineNumber, err = strconv.Atoi(logEntry.CodeLine)
-			if err != nil {
-				break
-			}
-			// GELF: Line
-			gelfLogEntry.Line = &lineNumber
-			// GELF: File
-			gelfLogEntry.File = logEntry.CodeFile
-			// GELF: Function
-			gelfLogEntry.Function = logEntry.CodeFunction
-		}
-
-		// GELF: Transport
-		gelfLogEntry.Transport = logEntry.Transport
-
-		// Prepare and send the GELF payload to the Graylog server.
-		gelfPayloadBytes, err := json.Marshal(gelfLogEntry)
-		if err != nil {
-			panic(err)
-		}
-
-		gelfPayload := string(gelfPayloadBytes)
 
 		if *verbose {
 			log.Println(gelfPayload)
@@ -205,4 +127,68 @@ func main() {
 		graylog.Log(gelfPayload)
 	}
 
+}
+
+func prepareGelfPayload(disableRawLogLine *bool, line []byte, defaultHostname string) string {
+	var logEntry journald.JournaldJSONLogEntry
+	var gelfLogEntry gelf.GELFLogEntry
+
+	err := json.Unmarshal(line, &logEntry)
+	if err != nil {
+		log.Printf("The following log line was not a correctly JSON encoded, it will be skiped: \"%s\"\n", line)
+		return ""
+	}
+
+	if !*disableRawLogLine {
+		gelfLogEntry.RawLogLine = string(line)
+	}
+	gelfLogEntry.Version = "1.1"
+	if logEntry.Hostname == "" || logEntry.Hostname == "localhost" {
+		gelfLogEntry.Host = defaultHostname
+	} else {
+		gelfLogEntry.Host = logEntry.Hostname
+	}
+	gelfLogEntry.Level, err = strconv.Atoi(logEntry.Priority)
+	if err != nil {
+		panic(err)
+	}
+	gelfLogEntry.ShortMessage = logEntry.Message
+	var jts = logEntry.RealtimeTimestamp
+	gelfLogEntry.Timestamp, err = strconv.ParseFloat(fmt.Sprintf("%s.%s", jts[:10], jts[10:]), 64)
+	if (logEntry.SyslogFacility != "") && (logEntry.SyslogIdentifier != "") {
+		gelfLogEntry.Facility = fmt.Sprintf("%s (%s)", logEntry.SyslogFacility, logEntry.SyslogIdentifier)
+	} else if logEntry.SyslogFacility != "" {
+		gelfLogEntry.Facility = logEntry.SyslogFacility
+	} else if logEntry.SyslogIdentifier != "" {
+		gelfLogEntry.Facility = logEntry.SyslogIdentifier
+	} else {
+		gelfLogEntry.Facility = "Undefined"
+	}
+	gelfLogEntry.BootID = logEntry.BootID
+	gelfLogEntry.MachineID = logEntry.MachineID
+	gelfLogEntry.PID = logEntry.PID
+	gelfLogEntry.UID = logEntry.UID
+	gelfLogEntry.GID = logEntry.GID
+	gelfLogEntry.Executable = logEntry.Executable
+	gelfLogEntry.CommandLine = logEntry.CommandLine
+	var lineNumber int
+	if logEntry.CodeLine != "" {
+		lineNumber, err = strconv.Atoi(logEntry.CodeLine)
+		if err != nil {
+			return ""
+		}
+		// GELF: Line
+		gelfLogEntry.Line = &lineNumber
+		// GELF: File
+		gelfLogEntry.File = logEntry.CodeFile
+		// GELF: Function
+		gelfLogEntry.Function = logEntry.CodeFunction
+	}
+	gelfLogEntry.Transport = logEntry.Transport
+	gelfPayloadBytes, err := json.Marshal(gelfLogEntry)
+	if err != nil {
+		panic(err)
+	}
+	gelfPayload := string(gelfPayloadBytes)
+	return gelfPayload
 }

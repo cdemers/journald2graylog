@@ -18,14 +18,12 @@ import (
 
 var (
 	blacklistFlag = flag.String("J2G_BLACKLIST", os.Getenv("J2G_BLACKLIST"), "Blacklist Regex with ; separator ( e.g. : \"foo.*;bar.*\" )")
+	hostname      = flag.String("J2G_HOSTNAME", os.Getenv("J2G_HOSTNAME"), "Hostname or IP of your Graylog server, it has no default and MUST be specified.")
+	portStr       = flag.String("J2G_PORT", os.Getenv("J2G_PORT"), "Port of the UDP GELF input of the Graylog server, it will default to 12201")
+	packetSizeStr = flag.String("J2G_PACKET_SIZE", os.Getenv("J2G_PACKET_SIZE"), "Maximum size of the TCP/IP packets you can use between the source (journald2graylg) and the destination (your Graylog server). Defaults to 1420")
 )
 
 func parseGraylogConfig() (hostname string, port int, packetSize int, err error) {
-
-	hostname = os.Getenv("J2G_HOSTNAME")
-	portStr := os.Getenv("J2G_PORT")
-	packetSizeStr := os.Getenv("J2G_PACKET_SIZE")
-
 	if hostname == "" {
 		err = fmt.Errorf("The Graylog server hostname is required but was not specified. The server hostname is expected to be specified via the J2G_HOSTNAME environment variable.")
 		return "", 0, 0, err

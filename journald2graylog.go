@@ -21,10 +21,10 @@ import (
 var (
 	verbose           = kingpin.Flag("verbose", "Wether journald2graylog will be verbose or not.").Bool()
 	disableRawLogLine = kingpin.Flag("disable-rawlogline", "Wether journald2graylog will send the raw log line or not.").Bool()
-	blacklistFlag     = kingpin.Flag("J2G_BLACKLIST", "Blacklist Regex with ; separator ( e.g. : \"foo.*;bar.*\" )").OverrideDefaultFromEnvar("J2G_BLACKLIST").String()
-	graylogHostname   = kingpin.Flag("J2G_HOSTNAME", "Hostname or IP of your Graylog server, it has no default and MUST be specified").OverrideDefaultFromEnvar("J2G_HOSTNAME").Required().String()
-	graylogPort       = kingpin.Flag("J2G_PORT", "Port of the UDP GELF input of the Graylog server").Default("12201").OverrideDefaultFromEnvar("J2G_PORT").Int()
-	graylogPacketSize = kingpin.Flag("J2G_PACKET_SIZE", "Maximum size of the TCP/IP packets you can use between the source (journald2graylg) and the destination (your Graylog server)").Default("1420").OverrideDefaultFromEnvar("J2G_PACKET_SIZE").Int()
+	blacklistFlag     = kingpin.Flag("J2G_BLACKLIST", "Blacklist Regex with ; separator ( e.g. : \"foo.*;bar.*\" )").Envar("J2G_BLACKLIST").String()
+	graylogHostname   = kingpin.Flag("J2G_HOSTNAME", "Hostname or IP of your Graylog server, it has no default and MUST be specified").Envar("J2G_HOSTNAME").Required().String()
+	graylogPort       = kingpin.Flag("J2G_PORT", "Port of the UDP GELF input of the Graylog server").Default("12201").Envar("J2G_PORT").Int()
+	graylogPacketSize = kingpin.Flag("J2G_PACKET_SIZE", "Maximum size of the TCP/IP packets you can use between the source (journald2graylg) and the destination (your Graylog server)").Default("1420").Envar("J2G_PACKET_SIZE").Int()
 )
 
 func main() {

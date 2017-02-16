@@ -13,10 +13,10 @@ controller: clean
 	GOOS=linux go build -a -ldflags '-w' -o journald2graylog
 
 container: controller
-	docker build --pull -t $(PREFIX):$(TAG) .
+	docker build --pull -t $(REGISTRY):$(TAG) .
 
 clean:
 	rm -f journald2graylog
 
 push: container
-	#gcloud docker push $(PREFIX):$(TAG)
+	#gcloud docker push $(REGISTRY):$(TAG)

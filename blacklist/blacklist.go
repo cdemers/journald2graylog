@@ -9,7 +9,7 @@ type Blacklist struct {
 	regexp []*regexp.Regexp
 }
 
-// Return true if any regex in the regex array match this line
+//IsBlacklisted Return true if any regex in the regex array match this line
 func (b *Blacklist) IsBlacklisted(line []byte) bool {
 	for _, r := range b.regexp {
 		if r.Match(line) {
@@ -19,7 +19,7 @@ func (b *Blacklist) IsBlacklisted(line []byte) bool {
 	return false
 }
 
-// Parse the string using ; separator and return the Blacklist struct
+//PrepareBlacklist Parse the string using ; separator and return the Blacklist struct
 func PrepareBlacklist(blacklist *string) Blacklist {
 
 	b := Blacklist{}

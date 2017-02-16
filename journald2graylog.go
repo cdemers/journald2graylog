@@ -51,8 +51,8 @@ func main() {
 	b := blacklist.PrepareBlacklist(blacklistFlag)
 
 	if *verbose {
-		log.Printf("Graylog host:\"%s\" port:\"%d\" packet size:\"%d\" blacklist:\"%v\"",
-			*graylogHostname, *graylogPort, *graylogPacketSize, b)
+		log.Printf("Graylog host:\"%s\" port:\"%d\" packet size:\"%d\" blacklist:\"%v\" disableRawLogLine:\"%t\"",
+			*graylogHostname, *graylogPort, *graylogPacketSize, b, *disableRawLogLine)
 	}
 
 	// Build the go reader of stdin from where the log stream will be comming from.

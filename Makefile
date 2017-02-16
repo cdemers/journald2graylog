@@ -19,4 +19,4 @@ clean:
 	rm -f journald2graylog
 
 push: container
-	#gcloud docker push $(REGISTRY):$(TAG)
+	docker push $(REGISTRY):$(TAG)

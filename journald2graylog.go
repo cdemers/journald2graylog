@@ -3,12 +3,13 @@ package main
 import (
 	"bufio"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"log"
 	"os"
 	"strconv"
+
+	kingpin "gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/cdemers/journald2graylog/blacklist"
 	"github.com/cdemers/journald2graylog/gelf"
@@ -17,55 +18,16 @@ import (
 )
 
 var (
-	blacklistFlag = flag.String("J2G_BLACKLIST", os.Getenv("J2G_BLACKLIST"), "Blacklist Regex with ; separator ( e.g. : \"foo.*;bar.*\" )")
-	hostname      = flag.String("J2G_HOSTNAME", os.Getenv("J2G_HOSTNAME"), "Hostname or IP of your Graylog server, it has no default and MUST be specified.")
-	portStr       = flag.String("J2G_PORT", os.Getenv("J2G_PORT"), "Port of the UDP GELF input of the Graylog server, it will default to 12201")
-	packetSizeStr = flag.String("J2G_PACKET_SIZE", os.Getenv("J2G_PACKET_SIZE"), "Maximum size of the TCP/IP packets you can use between the source (journald2graylg) and the destination (your Graylog server). Defaults to 1420")
+	verbose           = kingpin.Flag("verbose", "Wether journald2graylog will be verbose or not.").Bool()
+	disableRawLogLine = kingpin.Flag("disable-rawlogline", "Wether journald2graylog will send the raw log line or not.").Bool()
+	blacklistFlag     = kingpin.Flag("J2G_BLACKLIST", "Blacklist Regex with ; separator ( e.g. : \"foo.*;bar.*\" )").OverrideDefaultFromEnvar("J2G_BLACKLIST").String()
+	graylogHostname   = kingpin.Flag("J2G_HOSTNAME", "Hostname or IP of your Graylog server, it has no default and MUST be specified").OverrideDefaultFromEnvar("J2G_HOSTNAME").Required().String()
+	graylogPort       = kingpin.Flag("J2G_PORT", "Port of the UDP GELF input of the Graylog server").Default("12201").OverrideDefaultFromEnvar("J2G_PORT").Int()
+	graylogPacketSize = kingpin.Flag("J2G_PACKET_SIZE", "Maximum size of the TCP/IP packets you can use between the source (journald2graylg) and the destination (your Graylog server)").Default("1420").OverrideDefaultFromEnvar("J2G_PACKET_SIZE").Int()
 )
 
-func parseGraylogConfig() (hostname string, port int, packetSize int, err error) {
-	if hostname == "" {
-		err = fmt.Errorf("The Graylog server hostname is required but was not specified. The server hostname is expected to be specified via the J2G_HOSTNAME environment variable.")
-		return "", 0, 0, err
-	}
-
-	if portStr == "" {
-		port = 12201
-	} else {
-		port, err = strconv.Atoi(portStr)
-		if err != nil {
-			err = fmt.Errorf("Unable to parse the port number as an natural number.")
-			return "", 0, 0, err
-		}
-	}
-
-	if packetSizeStr == "" {
-		packetSize = 1420
-	} else {
-		packetSize, err = strconv.Atoi(packetSizeStr)
-		if err != nil {
-			err = fmt.Errorf("Unable to parse the packet size as an natural number.")
-			return "", 0, 0, err
-		}
-	}
-
-	return hostname, port, packetSize, nil
-}
-
-func parseCommandLineFlags() (verboseFlag *bool, disableRawLogLine *bool) {
-	verboseFlag = flag.Bool("verbose", false, "Wether journald2graylog will be verbose or not.")
-	disableRawLogLine = flag.Bool("disable-rawlogline", false, "Wether journald2graylog will send the raw log line or not.")
-	flag.Parse()
-	return verboseFlag, disableRawLogLine
-}
-
 func main() {
-	verbose, disableRawLogLine := parseCommandLineFlags()
-
-	graylogHostname, graylogPort, graylogPacketSize, err := parseGraylogConfig()
-	if err != nil {
-		panic(err)
-	}
+	kingpin.Parse()
 
 	// Determine what will be the default value of the "hostname" field in the
 	// GELF payload.
@@ -80,17 +42,17 @@ func main() {
 	// Build the object that will allow us to transmit messages to the Graylog
 	// server.
 	graylog := rkgelf.New(rkgelf.Config{
-		GraylogHostname: graylogHostname,
-		GraylogPort:     graylogPort,
+		GraylogHostname: *graylogHostname,
+		GraylogPort:     *graylogPort,
 		Connection:      "wan",
-		MaxChunkSizeLan: graylogPacketSize,
+		MaxChunkSizeLan: *graylogPacketSize,
 	})
 
 	b := blacklist.PrepareBlacklist(blacklistFlag)
 
 	if *verbose {
 		log.Printf("Graylog host:\"%s\" port:\"%d\" packet size:\"%d\" blacklist:\"%v\"",
-			graylogHostname, graylogPort, graylogPacketSize, b)
+			*graylogHostname, *graylogPort, *graylogPacketSize, b)
 	}
 
 	// Build the go reader of stdin from where the log stream will be comming from.
@@ -106,7 +68,7 @@ func main() {
 			panic(err)
 		}
 		if overflow {
-			log.Println("Got a log line that was bigger than the allocated buffer, it will be skiped.")
+			log.Println("Got a log line that was bigger than the allocated buffer, it will be skipped.")
 			continue
 		}
 		if b.IsBlacklisted(line) {
@@ -152,7 +114,7 @@ func prepareGelfPayload(disableRawLogLine *bool, line []byte, defaultHostname st
 	}
 	gelfLogEntry.ShortMessage = logEntry.Message
 	var jts = logEntry.RealtimeTimestamp
-	gelfLogEntry.Timestamp, err = strconv.ParseFloat(fmt.Sprintf("%s.%s", jts[:10], jts[10:]), 64)
+	gelfLogEntry.Timestamp, _ = strconv.ParseFloat(fmt.Sprintf("%s.%s", jts[:10], jts[10:]), 64)
 	if (logEntry.SyslogFacility != "") && (logEntry.SyslogIdentifier != "") {
 		gelfLogEntry.Facility = fmt.Sprintf("%s (%s)", logEntry.SyslogFacility, logEntry.SyslogIdentifier)
 	} else if logEntry.SyslogFacility != "" {

@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 
@@ -29,6 +30,11 @@ var (
 func main() {
 	kingpin.Parse()
 
+	if *verbose {
+		log.Printf("Graylog host:\"%s\" port:\"%d\" packet size:\"%d\" blacklist:\"%v\" disableRawLogLine:\"%t\"",
+			*graylogHostname, *graylogPort, *graylogPacketSize, strings.Split(*blacklistFlag, ";"), *disableRawLogLine)
+	}
+
 	// Determine what will be the default value of the "hostname" field in the
 	// GELF payload.
 	defaultHostname, err := os.Hostname()
@@ -49,11 +55,6 @@ func main() {
 	})
 
 	b := blacklist.PrepareBlacklist(blacklistFlag)
-
-	if *verbose {
-		log.Printf("Graylog host:\"%s\" port:\"%d\" packet size:\"%d\" blacklist:\"%v\" disableRawLogLine:\"%t\"",
-			*graylogHostname, *graylogPort, *graylogPacketSize, b, *disableRawLogLine)
-	}
 
 	// Build the go reader of stdin from where the log stream will be comming from.
 	reader := bufio.NewReader(os.Stdin)

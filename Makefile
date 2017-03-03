@@ -1,22 +1,42 @@
-all: push
+all: bin
 
-# 0.0 shouldn't clobber any release builds, current "latest" is 0.9
-TAG = 0.1.3
+TAG = 0.1.4b
+NAME = journald2graylog
 
 PREFIX = hub.docker.com
 ifneq ($(strip $(DOCKER_REGISTRY)),)
 	PREFIX = $(DOCKER_REGISTRY)
 endif
-REGISTRY := $(PREFIX)/journald2graylog
+REGISTRY := $(PREFIX)/$(NAME)
 
-controller: clean
-	GOOS=linux go build -a -ldflags '-w' -o journald2graylog
+GOBUILD = go build -v -a
+GOBUILD_RELEASE = go build -a -ldflags '-s -w'
 
-container: controller
+bin_linux: clean
+	GOOS=linux GOARCH=amd64 $(GOBUILD) -o $(NAME)
+
+bin_mac: clean
+	GOOS=darwin GOARCH=amd64 $(GOBUILD) -o $(NAME)
+
+bin: clean
+	 $(GOBUILD) -o $(NAME)
+
+docker: bin_linux
 	docker build --pull -t $(REGISTRY):$(TAG) .
 
 clean:
-	rm -f journald2graylog
+	rm -rf $(NAME) dist/
 
 push: container
 	docker push $(REGISTRY):$(TAG)
+
+dist: clean
+	mkdir -p dist/darwin
+	GOOS=darwin GOARCH=amd64 $(GOBUILD_RELEASE) -o dist/darwin/$(NAME)
+	cd dist/darwin && tar -czvf $(NAME)-v$(TAG).tgz $(NAME)
+	rm -rf dist/darwin/$(NAME)
+
+	mkdir -p dist/linux
+	GOOS=linux GOARCH=amd64 $(GOBUILD_RELEASE) -o dist/linux/$(NAME)
+	cd dist/linux && tar -czvf $(NAME)-v$(TAG).tgz $(NAME)
+	rm -rf dist/linux/$(NAME)

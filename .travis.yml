@@ -11,4 +11,4 @@ install:
   - gometalinter --install --update
 
 script:
-  - gometalinter
+  - go test

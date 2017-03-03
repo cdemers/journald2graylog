@@ -26,3 +26,4 @@ _testmain.go
 journald2graylog
 test_set
 private_tools
+dist

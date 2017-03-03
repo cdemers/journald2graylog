@@ -19,12 +19,6 @@ There are four configuration parameters:
 
 You can add debugging by specifying the `--verbose` (also `-v`) flag, it will display the configuration parameters sent to journald2graylog in stdout
 
-Note that if a parameter specified via an environment variable will override the same parameter specified via command line. For example, in the following command, the _blacklist_ parameter will be set to _localhost_ and not _remotehost_ :
-
-``` bash
-J2G_BLACKLIST=localhost journald2graylog --blacklist remotehost
-```
-
 ### Example usage
 This example uses all available configuration parameters, provided as environment variables:
 
@@ -45,6 +39,12 @@ And depending on your context, you might actually need to use something more amo
 
 ``` bash
 sudo journalctl -o json -f | J2G_HOSTNAME=graylog.example.com ./journald2graylog
+```
+
+Note that if a parameter specified via an environment variable will override the same parameter specified via command line. For example, in the following command, the _blacklist_ parameter will be set to _localhost_ and not _remotehost_ :
+
+``` bash
+J2G_BLACKLIST=localhost journald2graylog --blacklist remotehost
 ```
 
 ## Install

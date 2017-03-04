@@ -1,9 +1,6 @@
 package blacklist
 
-import (
-	"github.com/stretchr/testify/assert"
-	"testing"
-)
+import "testing"
 
 func TestIsBlacklisted(t *testing.T) {
 
@@ -14,7 +11,9 @@ func TestIsBlacklisted(t *testing.T) {
 
 	ret := b.IsBlacklisted(bytes)
 
-	assert.True(t, ret)
+	if ret != true {
+		t.Error()
+	}
 }
 
 func TestIsNotBlacklisted(t *testing.T) {
@@ -24,7 +23,9 @@ func TestIsNotBlacklisted(t *testing.T) {
 
 	ret := b.IsBlacklisted(bytes)
 
-	assert.False(t, ret)
+	if ret != false {
+		t.Error()
+	}
 }
 
 func TestIsNotBlacklistedWhenEmpty(t *testing.T) {
@@ -35,7 +36,9 @@ func TestIsNotBlacklistedWhenEmpty(t *testing.T) {
 
 	ret := b.IsBlacklisted(bytes)
 
-	assert.False(t, ret)
+	if ret != false {
+		t.Error()
+	}
 }
 
 func TestPrepareBlacklist(t *testing.T) {
@@ -45,13 +48,22 @@ func TestPrepareBlacklist(t *testing.T) {
 
 	bytes := []byte{'f', 'o', 'o'}
 	foo := b.IsBlacklisted(bytes)
-	assert.True(t, foo)
+
+	if foo != true {
+		t.Error()
+	}
 
 	bytes = []byte{'b', 'a', 'r'}
 	bar := b.IsBlacklisted(bytes)
-	assert.True(t, bar)
+
+	if bar != true {
+		t.Error()
+	}
 
 	bytes = []byte{'d', 'o', 'e'}
 	doe := b.IsBlacklisted(bytes)
-	assert.False(t, doe)
+
+	if doe != false {
+		t.Error()
+	}
 }

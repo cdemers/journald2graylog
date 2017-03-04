@@ -11,4 +11,5 @@ install:
   - gometalinter --install --update
 
 script:
-  - go test
+  - gometalinter -D gocyclo -D gas
+  - go test ./...

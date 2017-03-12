@@ -37,6 +37,6 @@ type GELFLogEntry struct {
 
 func (log *GELFLogEntry) String() (output string) {
 	output = fmt.Sprintf("GELF:v%s Host:%s Timestamp:%d Level:%d Facility:%s Line:%d File:%s Message:\"%s\"",
-		log.Version, log.Host, log.Timestamp, log.Level, log.Facility, log.Line, log.File, log.ShortMessage)
+		log.Version, log.Host, int(log.Timestamp), log.Level, log.Facility, log.Line, log.File, log.ShortMessage)
 	return output
 }

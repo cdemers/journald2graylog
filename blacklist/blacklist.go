@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// Blacklist represents a list of regex meant filter out logs.
 type Blacklist struct {
 	regexp []*regexp.Regexp
 }

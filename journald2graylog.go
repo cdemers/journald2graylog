@@ -56,7 +56,7 @@ func main() {
 
 	b := blacklist.PrepareBlacklist(blacklistFlag)
 
-	// Build the go reader of stdin from where the log stream will be comming from.
+	// Build the go reader of stdin from where the log stream will be coming from.
 	reader := bufio.NewReader(os.Stdin)
 
 	// Loop and process entries from stdin until EOF.

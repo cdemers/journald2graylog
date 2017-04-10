@@ -21,6 +21,8 @@ There are four configuration parameters:
 
 You can add debugging by specifying the `--verbose` (also `-v`) flag, it will display the configuration parameters sent to journald2graylog in stdout
 
+Note that from version 0.2.0 onward, _journald2graylog_ will now exit if there is a network error, instead of looping forever. This makes a network problem more visible, and also gives Kubernetes (or a bash script, or systemd, etc) a chance to restart the application, which might end up resolving this kind of network problem.
+
 ### Example usage
 This example uses all available configuration parameters, provided as environment variables:
 

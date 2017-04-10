@@ -1,0 +1,10 @@
+{
+    "dependencies": {
+        "github.com/robertkowalski/graylog-golang": {
+            "branch": "master"
+        },
+        "gopkg.in/alecthomas/kingpin.v2": {
+            "branch": "master"
+        }
+    }
+}

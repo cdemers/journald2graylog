@@ -6,25 +6,30 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"os"
 	"strconv"
 	"strings"
+	"syscall"
+	"time"
 
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/cdemers/journald2graylog/blacklist"
 	"github.com/cdemers/journald2graylog/gelf"
 	"github.com/cdemers/journald2graylog/journald"
+	"github.com/jpillora/backoff"
 	rkgelf "github.com/robertkowalski/graylog-golang"
 )
 
 var (
-	verbose           = kingpin.Flag("verbose", "Wether journald2graylog will be verbose or not.").Short('v').Bool()
-	disableRawLogLine = kingpin.Flag("disable-rawlogline", "Wether journald2graylog will send the raw log line or not.").Bool()
-	blacklistFlag     = kingpin.Flag("blacklist", "Prevent sending matching logs to the Graylog server. The value of this parameter can be one or more Regex separated by a semicolon ( e.g. : \"foo.*;bar.*\" )").Envar("J2G_BLACKLIST").String()
-	graylogHostname   = kingpin.Flag("hostname", "Hostname or IP of your Graylog server, it has no default and MUST be specified").Envar("J2G_HOSTNAME").Required().String()
-	graylogPort       = kingpin.Flag("port", "Port of the UDP GELF input of the Graylog server").Default("12201").Envar("J2G_PORT").Int()
-	graylogPacketSize = kingpin.Flag("packet-size", "Maximum size of the TCP/IP packets you can use between the source (journald2graylg) and the destination (your Graylog server)").Default("1420").Envar("J2G_PACKET_SIZE").Int()
+	verbose                         = kingpin.Flag("verbose", "Wether journald2graylog will be verbose or not.").Short('v').Bool()
+	disableRawLogLine               = kingpin.Flag("disable-rawlogline", "Wether journald2graylog will send the raw log line or not.").Bool()
+	blacklistFlag                   = kingpin.Flag("blacklist", "Prevent sending matching logs to the Graylog server. The value of this parameter can be one or more Regex separated by a semicolon ( e.g. : \"foo.*;bar.*\" )").Envar("J2G_BLACKLIST").String()
+	graylogHostname                 = kingpin.Flag("hostname", "Hostname or IP of your Graylog server, it has no default and MUST be specified").Envar("J2G_HOSTNAME").Required().String()
+	graylogPort                     = kingpin.Flag("port", "Port of the UDP GELF input of the Graylog server").Default("12201").Envar("J2G_PORT").Int()
+	graylogPacketSize               = kingpin.Flag("packet-size", "Maximum size of the TCP/IP packets you can use between the source (journald2graylg) and the destination (your Graylog server)").Default("1420").Envar("J2G_PACKET_SIZE").Int()
+	maxRetryConnectionDurationInMin = kingpin.Flag("max-retry-time", "Max Fail connection retrial duration").Default("2").Envar("J2G_MAX_RETRY_TIME").Int()
 )
 
 func main() {
@@ -35,6 +40,32 @@ func main() {
 			*graylogHostname, *graylogPort, *graylogPacketSize, strings.Split(*blacklistFlag, ";"), *disableRawLogLine)
 	}
 
+	be := &backoff.Backoff{
+		Min:    100 * time.Millisecond,
+		Max:    10 * time.Second,
+		Factor: 2,
+		Jitter: true,
+	}
+
+	timenow := time.Now()
+
+	for {
+		_, err := net.Dial("udp", *graylogHostname+":"+fmt.Sprintf("%d", *graylogPort))
+
+		timeexec := time.Since(timenow)
+
+		if err == nil {
+			break
+		}
+		if timeexec > (time.Duration(*maxRetryConnectionDurationInMin)*time.Minute) {
+			syscall.Exit(1)
+		}
+
+		d := be.Duration()
+		fmt.Printf("%s, reconnecting in %s ", err, d)
+		time.Sleep(d)
+
+	}
 	// Determine what will be the default value of the "hostname" field in the
 	// GELF payload.
 	defaultHostname, err := os.Hostname()

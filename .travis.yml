@@ -11,4 +11,4 @@ install:
 
 script:
   - gometalinter -D gocyclo -D gas --deadline=20s
-  - go test -v ./...
+  - go test $(go list ./... | grep -v /vendor/)

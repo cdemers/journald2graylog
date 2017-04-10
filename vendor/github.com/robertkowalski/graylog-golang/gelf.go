@@ -58,7 +58,8 @@ func New(config Config) *Gelf {
 	return g
 }
 
-func (g *Gelf) Log(message string) {
+// Log send a GELF log entry to the defined Graylog server
+func (g *Gelf) Log(message string) (e error) {
 	msgJson := g.ParseJson(message)
 
 	err := g.TestForForbiddenValues(msgJson)
@@ -81,12 +82,19 @@ func (g *Gelf) Log(message string) {
 
 		for i, index := 0, 0; i < length; i, index = i+chunksize, index+1 {
 			packet := g.CreateChunkedMessage(index, chunkCountInt, id, &compressed)
-			g.Send(packet.Bytes())
+			err = g.Send(packet.Bytes())
+			if err != nil {
+				return err
+			}
 		}
 
 	} else {
-		g.Send(compressed.Bytes())
+		err = g.Send(compressed.Bytes())
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (g *Gelf) CreateChunkedMessage(index int, chunkCountInt int, id []byte, compressed *bytes.Buffer) bytes.Buffer {
@@ -156,17 +164,19 @@ func (g *Gelf) TestForForbiddenValues(gmap map[string]interface{}) error {
 	return nil
 }
 
-func (g *Gelf) Send(b []byte) {
+// Send sends an UDP payload to the defined graylog server.
+func (g *Gelf) Send(b []byte) (e error) {
 	var addr = g.Config.GraylogHostname + ":" + strconv.Itoa(g.Config.GraylogPort)
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		log.Printf("Uh oh! %s", err)
-		return
+		return err
 	}
 	conn, err := net.DialUDP("udp", nil, udpAddr)
 	if err != nil {
 		log.Printf("Uh oh! %s", err)
-		return
+		return err
 	}
 	conn.Write(b)
+	return nil
 }

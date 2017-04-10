@@ -85,7 +85,10 @@ func main() {
 			log.Println(gelfPayload)
 		}
 
-		graylog.Log(gelfPayload)
+		err = graylog.Log(gelfPayload)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 }

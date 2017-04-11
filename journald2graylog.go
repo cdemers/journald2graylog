@@ -20,7 +20,7 @@ import (
 
 var (
 	verbose           = kingpin.Flag("verbose", "Wether journald2graylog will be verbose or not.").Short('v').Bool()
-	disableRawLogLine = kingpin.Flag("disable-rawlogline", "Wether journald2graylog will send the raw log line or not.").Bool()
+	enableRawLogLine  = kingpin.Flag("enable-rawlogline", "Wether journald2graylog will send the raw log line or not, disabled by default.").Envar("J2G_ENABLE_RAWLOGLINE").Bool()
 	blacklistFlag     = kingpin.Flag("blacklist", "Prevent sending matching logs to the Graylog server. The value of this parameter can be one or more Regex separated by a semicolon ( e.g. : \"foo.*;bar.*\" )").Envar("J2G_BLACKLIST").String()
 	graylogHostname   = kingpin.Flag("hostname", "Hostname or IP of your Graylog server, it has no default and MUST be specified").Envar("J2G_HOSTNAME").Required().String()
 	graylogPort       = kingpin.Flag("port", "Port of the UDP GELF input of the Graylog server").Default("12201").Envar("J2G_PORT").Int()
@@ -31,8 +31,8 @@ func main() {
 	kingpin.Parse()
 
 	if *verbose {
-		log.Printf("Graylog host:\"%s\" port:\"%d\" packet size:\"%d\" blacklist:\"%v\" disableRawLogLine:\"%t\"",
-			*graylogHostname, *graylogPort, *graylogPacketSize, strings.Split(*blacklistFlag, ";"), *disableRawLogLine)
+		log.Printf("Graylog host:\"%s\" port:\"%d\" packet size:\"%d\" blacklist:\"%v\" enableRawLogLine:\"%t\"",
+			*graylogHostname, *graylogPort, *graylogPacketSize, strings.Split(*blacklistFlag, ";"), *enableRawLogLine)
 	}
 
 	// Determine what will be the default value of the "hostname" field in the
@@ -76,7 +76,7 @@ func main() {
 			continue
 		}
 
-		gelfPayload := prepareGelfPayload(disableRawLogLine, line, defaultHostname)
+		gelfPayload := prepareGelfPayload(enableRawLogLine, line, defaultHostname)
 		if gelfPayload == "" {
 			continue
 		}
@@ -93,7 +93,7 @@ func main() {
 
 }
 
-func prepareGelfPayload(disableRawLogLine *bool, line []byte, defaultHostname string) string {
+func prepareGelfPayload(enableRawLogLine *bool, line []byte, defaultHostname string) string {
 	var logEntry journald.JournaldJSONLogEntry
 	var gelfLogEntry gelf.GELFLogEntry
 
@@ -103,7 +103,7 @@ func prepareGelfPayload(disableRawLogLine *bool, line []byte, defaultHostname st
 		return ""
 	}
 
-	if !*disableRawLogLine {
+	if *enableRawLogLine {
 		gelfLogEntry.RawLogLine = string(line)
 	}
 	gelfLogEntry.Version = "1.1"

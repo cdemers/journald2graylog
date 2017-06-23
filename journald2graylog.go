@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -93,6 +94,21 @@ func main() {
 
 }
 
+func processDockerLogLine(log string) (ts, level, message string, err error) {
+	var re = regexp.MustCompile(`time=(\"[^\s]+\")\s+level=(\w+)\s+msg=\"(.+)\"`)
+
+	matches := re.FindSubmatch([]byte(log))
+	if len(matches) == 0 {
+		return "", "", "", fmt.Errorf("Not a recognised dockerd log line: %s", log)
+	}
+
+	ts = string(matches[0])
+	level = string(matches[1])
+	message = string(matches[2])
+
+	return ts, level, message, nil
+}
+
 func prepareGelfPayload(enableRawLogLine *bool, line []byte, defaultHostname string) string {
 	var logEntry journald.JournaldJSONLogEntry
 	var gelfLogEntry gelf.GELFLogEntry
@@ -116,9 +132,19 @@ func prepareGelfPayload(enableRawLogLine *bool, line []byte, defaultHostname str
 	if err != nil {
 		panic(err)
 	}
+
+	dockerTime, dockerLevel, dockerMessage, err := processDockerLogLine(logEntry.Message)
+	if err != nil {
+		logEntry.Message = dockerMessage
+		gelfLogEntry.DockerdTime = dockerTime
+		gelfLogEntry.DockerdLevel = dockerLevel
+	}
+
 	gelfLogEntry.ShortMessage = logEntry.Message
+
 	var jts = logEntry.RealtimeTimestamp
 	gelfLogEntry.Timestamp, _ = strconv.ParseFloat(fmt.Sprintf("%s.%s", jts[:10], jts[10:]), 64)
+
 	if (logEntry.SyslogFacility != "") && (logEntry.SyslogIdentifier != "") {
 		gelfLogEntry.Facility = fmt.Sprintf("%s (%s)", logEntry.SyslogFacility, logEntry.SyslogIdentifier)
 	} else if logEntry.SyslogFacility != "" {
@@ -128,6 +154,7 @@ func prepareGelfPayload(enableRawLogLine *bool, line []byte, defaultHostname str
 	} else {
 		gelfLogEntry.Facility = "Undefined"
 	}
+
 	gelfLogEntry.BootID = logEntry.BootID
 	gelfLogEntry.MachineID = logEntry.MachineID
 	gelfLogEntry.PID = logEntry.PID

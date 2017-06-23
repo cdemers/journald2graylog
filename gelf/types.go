@@ -31,6 +31,11 @@ type GELFLogEntry struct {
 
 	Function string `json:"_function"`
 
+	// Dockerd Specific Fields
+	DockerdTime  string `json:"_DockerdTime"`
+	DockerdLevel string `json:"_DockerdLevel"`
+	// DockerdMessage string `json:"_DockerdMessage"`
+
 	// Metadata
 	RawLogLine string `json:"_RawLogLine"`
 }

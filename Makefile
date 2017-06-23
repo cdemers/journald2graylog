@@ -1,6 +1,6 @@
 all: bin
 
-TAG = 0.3.0b
+TAG = 0.4.0b
 NAME = journald2graylog
 
 PREFIX = hub.docker.com
@@ -22,7 +22,11 @@ bin: clean
 	 $(GOBUILD) -o $(NAME)
 
 docker: bin_linux
-	docker build --pull -t $(REGISTRY):$(TAG) .
+	@docker build \
+		--build-arg VCS_REF=`git rev-parse --short HEAD` \
+		--build-arg BUILD_DATE=`date +%Y%m%d` \
+		--build-arg BUILD_HOST=`hostname` \
+		-t $(REGISTRY):$(TAG) .
 
 clean:
 	rm -rf $(NAME) dist/

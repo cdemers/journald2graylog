@@ -1,4 +1,5 @@
-FROM centos:7
+FROM fedora:25
+RUN dnf update -qy && dnf upgrade -qy
 
 ##############################################################################
 # Specific container layers:

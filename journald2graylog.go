@@ -98,7 +98,7 @@ func processDockerLogLine(log string) (ts, level, message string, err error) {
 	var re = regexp.MustCompile(`time=(\"[^\s]+\")\s+level=(\w+)\s+msg=\"(.+)\"`)
 
 	matches := re.FindSubmatch([]byte(log))
-	if len(matches) == 0 {
+	if len(matches) < 3 {
 		return "", "", "", fmt.Errorf("Not a recognised dockerd log line: %s", log)
 	}
 
@@ -134,7 +134,7 @@ func prepareGelfPayload(enableRawLogLine *bool, line []byte, defaultHostname str
 	}
 
 	dockerTime, dockerLevel, dockerMessage, err := processDockerLogLine(logEntry.Message)
-	if err != nil {
+	if err == nil {
 		logEntry.Message = dockerMessage
 		gelfLogEntry.DockerdTime = dockerTime
 		gelfLogEntry.DockerdLevel = dockerLevel

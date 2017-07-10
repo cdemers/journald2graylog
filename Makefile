@@ -1,6 +1,6 @@
 all: bin
 
-TAG = 0.4.0b
+TAG = 0.4.1b
 NAME = journald2graylog
 
 PREFIX = hub.docker.com
@@ -9,8 +9,12 @@ ifneq ($(strip $(DOCKER_REGISTRY)),)
 endif
 REGISTRY := $(PREFIX)/$(NAME)
 
+GORUN = go run
 GOBUILD = go build -v -a
 GOBUILD_RELEASE = go build -a -ldflags '-s -w'
+
+run:
+	cat fixtures/testset-4l.jsonl | J2G_HOSTNAME=localhost $(GORUN) journald2graylog.go -v
 
 bin_linux: clean
 	GOOS=linux GOARCH=amd64 $(GOBUILD) -o $(NAME)
@@ -21,7 +25,7 @@ bin_mac: clean
 bin: clean
 	 $(GOBUILD) -o $(NAME)
 
-docker: bin_linux
+docker_image: bin_linux
 	@docker build \
 		--build-arg VCS_REF=`git rev-parse --short HEAD` \
 		--build-arg BUILD_DATE=`date +%Y%m%d` \
@@ -31,7 +35,7 @@ docker: bin_linux
 clean:
 	rm -rf $(NAME) dist/
 
-push: container
+docker_push: docker_image
 	docker push $(REGISTRY):$(TAG)
 
 dist: clean
@@ -44,3 +48,9 @@ dist: clean
 	GOOS=linux GOARCH=amd64 $(GOBUILD_RELEASE) -o dist/linux/$(NAME)
 	cd dist/linux && tar -czvf $(NAME)-v$(TAG).tgz $(NAME)
 	rm -rf dist/linux/$(NAME)
+
+	help:
+		$(info Usage:)
+		$(info use: "make" to build the binary for the current platform)
+		$(info use: "make docker_image" to build a Linux binary and it's docker image)
+		$(info use: "make docker_push" to push the docker image to hub.docker.com)

@@ -20,12 +20,13 @@ import (
 )
 
 var (
-	verbose           = kingpin.Flag("verbose", "Wether journald2graylog will be verbose or not.").Short('v').Bool()
-	enableRawLogLine  = kingpin.Flag("enable-rawlogline", "Wether journald2graylog will send the raw log line or not, disabled by default.").Envar("J2G_ENABLE_RAWLOGLINE").Bool()
-	blacklistFlag     = kingpin.Flag("blacklist", "Prevent sending matching logs to the Graylog server. The value of this parameter can be one or more Regex separated by a semicolon ( e.g. : \"foo.*;bar.*\" )").Envar("J2G_BLACKLIST").String()
-	graylogHostname   = kingpin.Flag("hostname", "Hostname or IP of your Graylog server, it has no default and MUST be specified").Envar("J2G_HOSTNAME").Required().String()
-	graylogPort       = kingpin.Flag("port", "Port of the UDP GELF input of the Graylog server").Default("12201").Envar("J2G_PORT").Int()
-	graylogPacketSize = kingpin.Flag("packet-size", "Maximum size of the TCP/IP packets you can use between the source (journald2graylg) and the destination (your Graylog server)").Default("1420").Envar("J2G_PACKET_SIZE").Int()
+	verbose             = kingpin.Flag("verbose", "Wether journald2graylog will be verbose or not.").Short('v').Envar("J2G_VERBOSE").Bool()
+	enableRawLogLine    = kingpin.Flag("enable-rawlogline", "Wether journald2graylog will send the raw log line or not, disabled by default.").Envar("J2G_ENABLE_RAWLOGLINE").Bool()
+	blacklistFlag       = kingpin.Flag("blacklist", "Prevent sending matching logs to the Graylog server. The value of this parameter can be one or more Regex separated by a semicolon ( e.g. : \"foo.*;bar.*\" )").Envar("J2G_BLACKLIST").String()
+	graylogHostname     = kingpin.Flag("hostname", "Hostname or IP of your Graylog server, it has no default and MUST be specified").Envar("J2G_HOSTNAME").Required().String()
+	graylogPort         = kingpin.Flag("port", "Port of the UDP GELF input of the Graylog server").Default("12201").Envar("J2G_PORT").Int()
+	graylogPacketSize   = kingpin.Flag("packet-size", "Maximum size of the TCP/IP packets you can use between the source (journald2graylg) and the destination (your Graylog server)").Default("1420").Envar("J2G_PACKET_SIZE").Int()
+	logTransmitRetryMax = 3
 )
 
 func main() {
@@ -86,10 +87,16 @@ func main() {
 			log.Println(gelfPayload)
 		}
 
-		err = graylog.Log(gelfPayload)
-		if err != nil {
-			panic(err)
+		for ctr := 0; ; ctr++ {
+			err = graylog.Log(gelfPayload)
+			if err == nil {
+				break
+			}
+			if ctr >= logTransmitRetryMax {
+				panic(fmt.Errorf("Failed to transmit a log line to the server, tried %d times. Reported error was: %s", ctr, err))
+			}
 		}
+
 	}
 
 }
@@ -102,9 +109,9 @@ func processDockerLogLine(log string) (ts, level, message string, err error) {
 		return "", "", "", fmt.Errorf("Not a recognised dockerd log line: %s", log)
 	}
 
-	ts = string(matches[0])
-	level = string(matches[1])
-	message = string(matches[2])
+	ts = string(matches[1])
+	level = string(matches[2])
+	message = string(matches[3])
 
 	return ts, level, message, nil
 }

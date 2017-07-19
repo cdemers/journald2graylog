@@ -1,13 +1,13 @@
 all: bin
 
-TAG = 0.4.1b
+TAG = 0.5.0b
 NAME = journald2graylog
 
 PREFIX = hub.docker.com
 ifneq ($(strip $(DOCKER_REGISTRY)),)
 	PREFIX = $(DOCKER_REGISTRY)
 endif
-REGISTRY := $(PREFIX)/$(NAME)
+REGISTRY := $(PREFIX)/cdemers/$(NAME)
 
 GORUN = go run
 GOBUILD = go build -v -a
@@ -49,8 +49,8 @@ dist: clean
 	cd dist/linux && tar -czvf $(NAME)-v$(TAG).tgz $(NAME)
 	rm -rf dist/linux/$(NAME)
 
-	help:
-		$(info Usage:)
-		$(info use: "make" to build the binary for the current platform)
-		$(info use: "make docker_image" to build a Linux binary and it's docker image)
-		$(info use: "make docker_push" to push the docker image to hub.docker.com)
+help:
+	$(info Usage:)
+	$(info use: "make" to build the binary for the current platform)
+	$(info use: "make docker_image" to build a Linux binary and it's docker image)
+	$(info use: "make docker_push" to push the docker image to hub.docker.com)

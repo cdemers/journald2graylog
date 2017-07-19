@@ -1,0 +1,35 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  labels:
+    app: journald2graylog
+  name: journald2graylog
+spec:
+  selector:
+    matchLabels:
+      app: journald2graylog
+  template:
+    metadata:
+      labels:
+        app: journald2graylog
+    spec:
+      containers:
+      - name: journald2graylog
+        image: registry.example.com/admin/journald2graylog:0.4.2b
+        env:
+        - name: J2G_HOSTNAME
+          value: graylog.example.com
+        - name: J2G_PORT
+          value: "12201"
+        - name: J2G_PACKET_SIZE
+          value: "1420"
+        - name: J2G_BLACKLIST
+          value: reconciler\.go:299;kubelet_getters\.go:249
+        volumeMounts:
+        - mountPath: /var/log/journal
+          name: journalctl-logs
+          readOnly: true
+      volumes:
+      - hostPath:
+          path: /var/log/journal
+        name: journalctl-logs

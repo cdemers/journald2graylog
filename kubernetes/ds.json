@@ -3,19 +3,15 @@
     "apiVersion":"extensions/v1beta1",
     "metadata":{
         "name":"journald2graylog",
-        "namespace": "admin",
         "labels":{
-            "app":"journald2graylog",
-            "ds-version": "1.0.0",
-            "tier":"admin"
+            "app":"journald2graylog"
         }
     },
     "spec":{
         "template":{
             "metadata":{
                 "labels":{
-                    "app":"journald2graylog",
-                    "tier":"admin"
+                    "app":"journald2graylog"
                 }
             },
             "spec":{
@@ -30,7 +26,7 @@
                 "containers":[
                     {
                         "name":"journald2graylog",
-                        "imagePullPolicy": "Always",
+                        "image": "registry.example.com/admin/journald2graylog:0.4.2b",
                         "env": [
                             {
                                 "name": "J2G_HOSTNAME",

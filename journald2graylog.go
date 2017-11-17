@@ -87,7 +87,7 @@ func main() {
 			log.Println(gelfPayload)
 		}
 
-		for ctr := 0; ; ctr++ {
+		for ctr := 1; ; ctr++ {
 			err = graylog.Log(gelfPayload)
 			if err == nil {
 				break
@@ -102,7 +102,7 @@ func main() {
 }
 
 func processDockerLogLine(log string) (ts, level, message string, err error) {
-	var re = regexp.MustCompile(`time=(\"[^\s]+\")\s+level=(\w+)\s+msg=\"(.+)\"`)
+	var re = regexp.MustCompile(`time=\"([^\s]+)\"\s+level=(\w+)\s+msg=\"(.+)\"`)
 
 	matches := re.FindSubmatch([]byte(log))
 	if len(matches) < 3 {

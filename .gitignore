@@ -27,3 +27,4 @@ journald2graylog
 test_set
 private_tools
 dist
+fixtures

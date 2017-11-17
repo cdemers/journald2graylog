@@ -1,6 +1,6 @@
 all: bin
 
-TAG = 0.5.0b
+TAG = 0.5.1b
 NAME = journald2graylog
 
 PREFIX = hub.docker.com
